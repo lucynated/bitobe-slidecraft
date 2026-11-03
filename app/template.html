@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Каталог банка слайдов BITOBE</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Onest:wght@400;500;600&family=PT+Serif:ital@1&display=swap" rel="stylesheet">
+<style>
+/* Фирменный стиль BITOBE: глубокий синий + бронза, Onest + курсив PT Serif. Макет: сводка → проверка подбора → дубли → каталог с фильтрами слева. */
+:root{
+  --ink:#151a33; --muted:#5d6380; --line:#dfe1ea; --paper:#ffffff; --panel:#f3f4f8;
+  --navy:#1d2b8f; --navy-soft:#e6e9f7; --bronze:#a8775a; --bronze-soft:#f4ebe5;
+  --warn:#9a4a12; --warn-soft:#fbeadb; --ok:#1f6b45; --ok-soft:#e1f2e8;
+  --display:"Onest",system-ui,-apple-system,"Segoe UI",sans-serif;
+  --accent-serif:"PT Serif",Georgia,serif;
+  color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){
+  --ink:#e8eaf4; --muted:#a3a8c2; --line:#2c3150; --paper:#10132a; --panel:#181c38;
+  --navy:#9aa6ff; --navy-soft:#232a5c; --bronze:#d9a98a; --bronze-soft:#3a2b24;
+  --warn:#f2b48a; --warn-soft:#3d2614; --ok:#8fd4ad; --ok-soft:#143326; color-scheme:dark;}}
+:root[data-theme="dark"]{
+  --ink:#e8eaf4; --muted:#a3a8c2; --line:#2c3150; --paper:#10132a; --panel:#181c38;
+  --navy:#9aa6ff; --navy-soft:#232a5c; --bronze:#d9a98a; --bronze-soft:#3a2b24;
+  --warn:#f2b48a; --warn-soft:#3d2614; --ok:#8fd4ad; --ok-soft:#143326; color-scheme:dark;}
+*{box-sizing:border-box}
+html,body{margin:0}
+body{background:var(--paper);color:var(--ink);font:15px/1.55 var(--display)}
+a{color:var(--navy)}
+.wrap{max-width:1320px;margin:0 auto;padding:0 24px}
+header{padding:40px 0 24px;border-bottom:1px solid var(--line)}
+h1{font-weight:500;font-size:34px;line-height:1.15;margin:0 0 10px;text-wrap:balance}
+h1 em,h2 em{font-family:var(--accent-serif);font-style:italic;font-weight:400;color:var(--navy)}
+h2{font-weight:500;font-size:24px;margin:0 0 6px;text-wrap:balance}
+h3{font-weight:500;font-size:17px;margin:0 0 4px}
+.lead{max-width:68ch;color:var(--muted);margin:0}
+nav.jump{display:flex;gap:8px;flex-wrap:wrap;margin-top:18px}
+nav.jump a{padding:6px 12px;border:1px solid var(--line);border-radius:999px;text-decoration:none;font-size:14px}
+nav.jump a:hover,nav.jump a:focus-visible{border-color:var(--navy);outline:none}
+section{padding:36px 0;border-bottom:1px solid var(--line)}
+.stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:12px;margin-top:18px}
+.stat{background:var(--panel);border-radius:10px;padding:14px 16px}
+.stat b{display:block;font-size:26px;font-weight:500;font-variant-numeric:tabular-nums}
+.stat span{color:var(--muted);font-size:13px}
+.typebar{display:flex;flex-wrap:wrap;gap:6px;margin-top:14px}
+.chip{display:inline-flex;align-items:center;gap:4px;font-size:12.5px;line-height:1.3;padding:3px 9px;border-radius:999px;background:var(--panel);color:var(--muted);border:1px solid transparent}
+button.chip{cursor:pointer;font-family:inherit}
+button.chip:hover,button.chip:focus-visible{border-color:var(--navy);outline:none}
+.chip.type{background:var(--navy-soft);color:var(--navy)}
+.chip.pr{background:var(--bronze-soft);color:var(--bronze)}
+.chip.warn{background:var(--warn-soft);color:var(--warn)}
+.chip.ok{background:var(--ok-soft);color:var(--ok)}
+.tests{display:grid;gap:18px;margin-top:18px}
+.test{border:1px solid var(--line);border-radius:12px;padding:18px 20px}
+.q{font-family:var(--accent-serif);font-style:italic;font-size:18px;margin:0 0 12px;color:var(--navy)}
+.outline{display:grid;gap:8px;margin:0;padding:0;list-style:none;counter-reset:o}
+.outline li{display:grid;grid-template-columns:28px 92px 1fr;gap:12px;align-items:start;counter-increment:o}
+.outline li::before{content:counter(o);font-variant-numeric:tabular-nums;color:var(--muted);font-size:13px;padding-top:2px}
+.outline img{width:92px;border-radius:4px;border:1px solid var(--line);cursor:zoom-in;display:block}
+.outline .t{font-weight:500}
+.outline .w{color:var(--muted);font-size:13.5px}
+.gap{margin-top:12px;font-size:14px;background:var(--warn-soft);color:var(--warn);padding:8px 12px;border-radius:8px}
+.dups{display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:14px;margin-top:18px}
+.dup{border:1px solid var(--line);border-radius:12px;padding:14px}
+.dup .imgs{display:flex;gap:8px;margin:8px 0;flex-wrap:wrap}
+.dup .imgs figure{margin:0;flex:1 1 110px;max-width:140px}
+.dup .imgs img{width:100%;border-radius:4px;border:1px solid var(--line);cursor:zoom-in;display:block}
+.dup figcaption{font-size:12px;color:var(--muted);margin-top:2px}
+.dup figcaption b{color:var(--ok);font-weight:500}
+.dup p{margin:0;font-size:14px}
+.cat{display:grid;grid-template-columns:260px 1fr;gap:28px;margin-top:18px;align-items:start}
+aside{position:sticky;top:12px;display:grid;gap:14px;background:var(--panel);border-radius:12px;padding:16px}
+aside label{font-size:12.5px;color:var(--muted);display:grid;gap:4px}
+aside input[type=search],aside select{font:inherit;font-size:14px;padding:7px 9px;border:1px solid var(--line);border-radius:8px;background:var(--paper);color:var(--ink);width:100%}
+aside input:focus-visible,aside select:focus-visible{outline:2px solid var(--navy);outline-offset:1px}
+.check{display:flex !important;grid-template-columns:none;align-items:center;gap:8px;color:var(--ink) !important;font-size:14px !important}
+#count{font-size:14px;color:var(--muted)}
+#reset{font:inherit;font-size:13px;background:none;border:1px solid var(--line);border-radius:8px;padding:6px;cursor:pointer;color:var(--ink)}
+#grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.card{border:1px solid var(--line);border-radius:12px;overflow:hidden;display:flex;flex-direction:column;background:var(--paper)}
+.card.dim{opacity:.62}
+.card .thumb{position:relative;background:var(--panel);cursor:zoom-in;border:0;padding:0;display:block;width:100%}
+.card .thumb img{width:100%;display:block;aspect-ratio:16/9;object-fit:cover}
+.num{position:absolute;right:8px;bottom:8px;background:var(--navy);color:#fff;font-size:12px;font-weight:500;padding:2px 8px;border-radius:999px;font-variant-numeric:tabular-nums}
+.body{padding:12px 14px 14px;display:grid;gap:8px}
+.body h3{font-size:15px;line-height:1.3}
+.thesis{font-size:14.5px;margin:0}
+.use{font-size:13px;color:var(--muted);margin:0}
+.use b{font-weight:500;color:var(--ink)}
+.chips{display:flex;flex-wrap:wrap;gap:5px}
+.empty{padding:40px;text-align:center;color:var(--muted);border:1px dashed var(--line);border-radius:12px}
+#lb{position:fixed;inset:0;background:rgba(10,12,30,.82);display:none;align-items:center;justify-content:center;padding:24px;z-index:10;cursor:zoom-out}
+#lb.on{display:flex}
+#lb img{max-width:min(1200px,100%);max-height:100%;border-radius:6px;background:#fff}
+footer{padding:28px 0 48px;color:var(--muted);font-size:13px}
+@media (max-width:860px){.cat{grid-template-columns:1fr}aside{position:static}h1{font-size:27px}}
+@media (max-width:420px){.wrap{padding:0 16px}.outline li{grid-template-columns:22px 70px 1fr}.outline img{width:70px}}
+@media (prefers-reduced-motion:no-preference){.card{transition:border-color .15s}.card:hover{border-color:var(--navy)}}
+</style>
+</head>
+<body>
+<header><div class="wrap">
+  <h1>Каталог банка слайдов <em>BITOBE</em></h1>
+  <p class="lead" id="lead"></p>
+  <div class="stats" id="stats"></div>
+  <div class="typebar" id="typebar" aria-label="Слайды по типам: нажмите, чтобы отфильтровать каталог"></div>
+  <nav class="jump"><a href="#test">Проверка подбора</a><a href="#dups">Дубли и варианты</a><a href="#catalog">Все карточки</a></nav>
+</div></header>
+<main>
+<section id="test"><div class="wrap">
+  <h2>Проверка <em>подбора по смыслу</em></h2>
+  <p class="lead">Агент получил короткий запрос и собрал план выступления только по карточкам каталога, без просмотра слайдов. Сравните с тем, что выбрали бы сами: где не совпало, нужно поправить карточки.</p>
+  <div class="tests" id="tests"></div>
+</div></section>
+<section id="dups"><div class="wrap">
+  <h2>Дубли и <em>варианты</em></h2>
+  <p class="lead" id="dupLead"></p>
+  <div class="dups" id="dupList"></div>
+</div></section>
+<section id="catalog"><div class="wrap">
+  <h2>Все <em>карточки</em></h2>
+  <p class="lead">У каждого слайда есть тезис (какую мысль он доказывает) и подсказка, когда его ставить. Именно по ним агент подбирает слайды. Нажмите на превью, чтобы увеличить.</p>
+  <div class="cat">
+    <aside aria-label="Фильтры каталога">
+      <label for="q">Поиск по смыслу и названию<input type="search" id="q" placeholder="например: текучесть, ценности"></label>
+      <label for="fType">Тип слайда<select id="fType"></select></label>
+      <label for="fPr">Практика<select id="fPr"></select></label>
+      <label for="fTopic">Тема<select id="fTopic"></select></label>
+      <label for="fFmt">Где уместен<select id="fFmt"></select></label>
+      <label for="fAud">Аудитория<select id="fAud"></select></label>
+      <label class="check" for="hideClient"><input type="checkbox" id="hideClient"> Скрыть слайды с данными клиентов</label>
+      <label class="check" for="hideDraft"><input type="checkbox" id="hideDraft"> Скрыть заготовки и служебные</label>
+      <label class="check" for="hideDup"><input type="checkbox" id="hideDup"> Скрыть лишние дубли</label>
+      <div id="count" aria-live="polite"></div>
+      <button id="reset" type="button">Сбросить фильтры</button>
+    </aside>
+    <div id="grid"></div>
+  </div>
+</div></section>
+</main>
+<footer><div class="wrap">Источник: BITOBE_bank_slides_low.pptx, 181 слайд. Карточки написаны ИИ-агентом и требуют выборочной проверки. Каталог: library/catalog.json. Страница пересобирается командой python3 scripts/build_page.py.</div></footer>
+<div id="lb" role="dialog" aria-label="Увеличенный слайд"><img alt=""></div>
+<script>
+const D=/*__DATA__*/null;
+const C=D.cards, X=D.extra, byN=Object.fromEntries(C.map(c=>[c.slide,c]));
+const img=n=>D.imgBase+'s-'+String(n).padStart(3,'0')+'.jpg';
+const esc=s=>String(s??'').replace(/[&<>"]/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[m]));
+const isClient=c=>c.client_data&&c.client_data!=='нет';
+const isDraft=c=>c.readiness==='заготовка'||c.type==='служебный';
+const isExtraDup=c=>c.dup_kind==='дубль'&&c.keep===false;
+const count=(arr)=>{const m={};arr.forEach(v=>m[v]=(m[v]||0)+1);return Object.entries(m).sort((a,b)=>b[1]-a[1]);};
+
+document.getElementById('lead').textContent=X.lead;
+const stats=[[C.length,'слайдов в банке'],[C.filter(c=>!isDraft(c)&&!isExtraDup(c)).length,'рабочих слайдов после чистки'],[C.filter(isClient).length,'с данными клиентов'],[X.duplicates.length,'групп дублей и вариантов'],[C.filter(isDraft).length,'заготовок и служебных']];
+document.getElementById('stats').innerHTML=stats.map(([n,l])=>`<div class="stat"><b>${n}</b><span>${l}</span></div>`).join('');
+document.getElementById('typebar').innerHTML=count(C.map(c=>c.type)).map(([t,n])=>`<button class="chip type" type="button" data-type="${esc(t)}">${esc(t)} · ${n}</button>`).join('');
+document.getElementById('typebar').addEventListener('click',e=>{const b=e.target.closest('[data-type]');if(!b)return;fType.value=b.dataset.type;render();document.getElementById('catalog').scrollIntoView({behavior:'smooth'});});
+
+document.getElementById('tests').innerHTML=X.tests.map(t=>`<article class="test"><p class="q">«${esc(t.query)}»</p>
+<ol class="outline">${t.outline.map(o=>{const c=byN[o.slide]||{};return `<li><img src="${img(o.slide)}" alt="Слайд ${o.slide}" data-n="${o.slide}" loading="lazy"><div><div class="t">${o.slide}. ${esc(c.title)}</div><div class="w">${esc(o.why)}</div></div></li>`}).join('')}</ol>
+${t.missing?`<div class="gap">Не хватает в банке: ${esc(t.missing)}</div>`:''}</article>`).join('');
+
+document.getElementById('dupLead').textContent=X.dup_lead;
+document.getElementById('dupList').innerHTML=X.duplicates.map(g=>`<div class="dup"><span class="chip ${g.kind==='дубль'?'warn':'type'}">${esc(g.kind)}</span>
+<div class="imgs">${g.slides.map(n=>`<figure><img src="${img(n)}" alt="Слайд ${n}" data-n="${n}" loading="lazy"><figcaption>${g.keep===n?'<b>оставить '+n+'</b>':'слайд '+n}</figcaption></figure>`).join('')}</div>
+<p>${esc(g.advice)}</p></div>`).join('');
+
+const sel=(id,vals,all)=>{const s=document.getElementById(id);s.innerHTML=`<option value="">${all}</option>`+vals.map(([v,n])=>`<option value="${esc(v)}">${esc(v)} (${n})</option>`).join('');s.addEventListener('change',render);return s;};
+const fType=sel('fType',count(C.map(c=>c.type)),'Все типы');
+const fPr=sel('fPr',count(C.flatMap(c=>c.practice)),'Все практики');
+const fTopic=sel('fTopic',count(C.flatMap(c=>c.topics)),'Все темы');
+const fFmt=sel('fFmt',count(C.flatMap(c=>c.formats)),'Любой формат');
+const fAud=sel('fAud',count(C.flatMap(c=>c.audience)),'Любая аудитория');
+const q=document.getElementById('q');q.addEventListener('input',render);
+['hideClient','hideDraft','hideDup'].forEach(id=>document.getElementById(id).addEventListener('change',render));
+document.getElementById('reset').addEventListener('click',()=>{[fType,fPr,fTopic,fFmt,fAud].forEach(s=>s.value='');q.value='';['hideClient','hideDraft','hideDup'].forEach(id=>document.getElementById(id).checked=false);render();});
+
+function card(c){
+  const flags=[];
+  if(isClient(c))flags.push(`<span class="chip warn">${esc(c.client_data)}</span>`);
+  if(c.readiness==='заготовка')flags.push('<span class="chip warn">заготовка</span>');
+  if(c.dup_kind)flags.push(`<span class="chip ${c.keep?'ok':''}">${esc(c.dup_kind)}: ${c.dup_group.join(', ')}${c.keep?' · оставить':''}</span>`);
+  return `<article class="card${isExtraDup(c)?' dim':''}"><button class="thumb" type="button" data-n="${c.slide}" aria-label="Увеличить слайд ${c.slide}"><img src="${img(c.slide)}" alt="" loading="lazy"><span class="num">${c.slide}</span></button>
+<div class="body"><h3>${esc(c.title)}</h3><p class="thesis">${esc(c.thesis)}</p><p class="use"><b>Когда ставить:</b> ${esc(c.use_when)}${c.avoid_when?`<br><b>Не ставить:</b> ${esc(c.avoid_when)}`:''}</p>
+<div class="chips"><span class="chip type">${esc(c.type)}</span><span class="chip">${esc(c.story_role)}</span>${c.practice.map(p=>`<span class="chip pr">${esc(p)}</span>`).join('')}${c.topics.map(t=>`<span class="chip">${esc(t)}</span>`).join('')}</div>
+${flags.length?`<div class="chips">${flags.join('')}</div>`:''}${c.note?`<p class="use">${esc(c.note)}</p>`:''}</div></article>`;
+}
+function render(){
+  const s=q.value.trim().toLowerCase().split(/\s+/).filter(Boolean);
+  const hc=hideClient.checked,hd=hideDraft.checked,hu=hideDup.checked;
+  const list=C.filter(c=>(!fType.value||c.type===fType.value)&&(!fPr.value||c.practice.includes(fPr.value))&&(!fTopic.value||c.topics.includes(fTopic.value))&&(!fFmt.value||c.formats.includes(fFmt.value))&&(!fAud.value||c.audience.includes(fAud.value))&&!(hc&&isClient(c))&&!(hd&&isDraft(c))&&!(hu&&isExtraDup(c))&&(!s.length||s.every(w=>[c.title,c.thesis,c.use_when,c.topics.join(' '),c.note,c.client_data].join(' ').toLowerCase().includes(w))));
+  document.getElementById('count').textContent=`Показано ${list.length} из ${C.length}`;
+  document.getElementById('grid').innerHTML=list.length?list.map(card).join(''):'<div class="empty">Ничего не нашлось. Попробуйте убрать часть фильтров.</div>';
+}
+render();
+const lb=document.getElementById('lb');
+document.addEventListener('click',e=>{const t=e.target.closest('[data-n]');if(t){lb.querySelector('img').src=img(t.dataset.n);lb.querySelector('img').alt='Слайд '+t.dataset.n;lb.classList.add('on');}else if(e.target.closest('#lb'))lb.classList.remove('on');});
+document.addEventListener('keydown',e=>{if(e.key==='Escape')lb.classList.remove('on');});
+</script>
+</body>
+</html>
