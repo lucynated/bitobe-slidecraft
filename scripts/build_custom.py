@@ -26,6 +26,7 @@ from pptx.util import Pt
 ROOT = Path(__file__).resolve().parent.parent
 TEMPLATE = ROOT / "library" / "template.pptx"
 BANK = ROOT / "library" / "bank.pptx"
+BASE = ROOT                     # картинки в описании — относительно файла описания
 
 COVERS = 26                     # слайды 1–26 шаблона — обложки, 27 — «Свяжитесь с нами»
 CONTACTS = 27
@@ -311,6 +312,7 @@ def titled_band(s, sl, r1, r2, txt, fill):
 
 def cards_row(s, sl, r1, r2, kind):
     items, acc = sl["пункты"], accents(sl)
+    numbered = sl.get("номера", "").lower() in ("да", "yes")
     n = len(items)
     spans = col_spans(n) if n in (1, 2, 3, 4, 6) else None
     if not spans:
@@ -321,18 +323,26 @@ def cards_row(s, sl, r1, r2, kind):
         label, head, body = split_item(it)
         dark = i in acc
         tc, bc = (WHITE, WHITE) if dark else (NAVY, GRAY)
-        top = [label_p(label, WHITE if dark else BLUE)] if label else []
+        top = [P(str(i), 54, WHITE if dark else BLUE, SERIF, italic=True, after=6)] if numbered else []
+        top += [label_p(label, WHITE if dark else BLUE)] if label else []
         if kind == "цифры":
             top += [P(head, 54, WHITE if dark else BLUE, SERIF, italic=True, after=0)]
-            bottom = [body_p(body, 16, tc)]
+            card(s, sl, x, y, w, h, top, [body_p(body, 16, tc)], fill=NAVY if dark else LIGHT)
         elif kind == "колонки":
+            # заголовок вверху, пункты — по строкам сетки ниже
+            plate(s, x, y, w, h, NAVY if dark else LIGHT)
             top += [head_p(head, 17, tc)]
-            bottom = ()
-            top += [P("— " + t.strip(), 14, bc, after=10) for t in body.split(";") if t.strip()]
+            text(s, x + PAD, y + PAD, w - 2 * PAD, est_height(top, w - 2 * PAD), top)
+            pts = [t.strip() for t in body.split(";") if t.strip()]
+            if r2 > r1 and pts:
+                for t, (a, b) in zip(pts, row_spans(r1 + 1, r2, len(pts))):
+                    yy, hh = rows(a, b)
+                    hline(s, x + PAD, yy, w - 2 * PAD, MID if dark else RULE)
+                    text(s, x + PAD, yy + 8, w - 2 * PAD, hh - 8 - PAD / 2, [body_p(t, 14, bc)])
+                    check_fit(sl, "пункт колонки", [body_p(t, 14)], w - 2 * PAD, hh - 8 - PAD / 2)
         else:
             top += [head_p(head, 17, tc)] if head else []
-            bottom = [body_p(body, 14, bc)]
-        card(s, sl, x, y, w, h, top, bottom, fill=NAVY if dark else LIGHT)
+            card(s, sl, x, y, w, h, top, [body_p(body, 14, bc)], fill=NAVY if dark else LIGHT)
 
 
 def list_rows(s, sl, r1, r2):
@@ -409,8 +419,9 @@ def chain(s, sl, r1, r2):
         _, head, body = split_item(it)
         dark = i in acc
         last = i == n and not dark
-        top = [P(f"{i:02d}", 11, WHITE if dark else BLUE, HEAD, after=4),
-               head_p(head or "", 15, WHITE if dark else NAVY)]
+        num = P(str(i), 44, WHITE if dark else BLUE, SERIF, italic=True, after=6) if h > 150 \
+            else P(f"{i:02d}", 11, WHITE if dark else BLUE, HEAD, after=4)
+        top = [num, head_p(head or "", 15, WHITE if dark else NAVY)]
         bottom = [body_p(body, 12, WHITE if dark else GRAY)]
         card(s, sl, x, y, w, h, top, bottom, fill=NAVY if dark else (WHITE if last else LIGHT),
              border=COPPER if last else None)
@@ -479,6 +490,98 @@ def scheme(s, sl, r1, r2):
             arrow(s, x, y1, x, y2, dashed=dashed)
             if label:
                 text(s, x + 8, (y1 + y2) / 2 - 8, 120, 15, [body_p(label, 10)])
+
+
+# ---------- картинки и таблицы ----------
+
+def image_path(sl, key="файл"):
+    f = (BASE / sl.get(key, "")).resolve()
+    if not f.is_file():
+        sys.exit(f"«{sl['заголовок']}»: нет картинки {f}")
+    return f
+
+
+def place_image(s, path, x, y, w, h):
+    """Картинка целиком (без обрезки, пропорции сохраняются), прижата к левому верхнему углу области."""
+    from PIL import Image
+    iw, ih = Image.open(path).size
+    k = min(w / iw, h / ih)
+    pic = s.shapes.add_picture(str(path), Pt(x), Pt(y), Pt(iw * k), Pt(ih * k))
+    pic.line.color.rgb = rgb(RULE)
+    pic.line.width = Pt(0.75)
+    return iw * k, ih * k
+
+
+def image_with_text(s, sl, r1, r2):
+    """Картинка на части колонок, пункты с другой стороны — по строкам сетки, с линейками."""
+    wide = int(sl.get("ширина", "7"))
+    left = sl.get("сторона", "слева").lower().startswith("сл")
+    img_cols = (0, wide - 1) if left else (12 - wide, 11)
+    txt_cols = (wide, 11) if left else (0, 11 - wide)
+    x, w = cols(*img_cols)
+    y, h = rows(r1, r2)
+    place_image(s, image_path(sl), x, y, w, h)
+    tx, tw = cols(*txt_cols)
+    items = [split_item(it) for it in sl["пункты"]]
+    if not items:
+        return
+    spans = row_spans(r1, r2, len(items))
+    for (label, head, body), (a, b) in zip(items, spans):
+        yy, hh = rows(a, b)
+        hline(s, tx, yy, tw)
+        paras = ([label_p(label)] if label else []) + ([head_p(head, 15)] if head else []) + [body_p(body, 13)]
+        text(s, tx, yy + 8, tw, hh - 8, paras)
+        check_fit(sl, "пункт рядом с картинкой", paras, tw, hh - 8)
+
+
+def images_row(s, sl, r1, r2):
+    """2–4 картинки в ряд с подписями: картинки в строках r1..r2-1, подписи — в последней строке."""
+    items = [split_item(it) for it in sl["пункты"]]
+    spans = col_spans(len(items))
+    if not spans:
+        sys.exit(f"«{sl['заголовок']}»: картинок в ряд — 1, 2, 3 или 4")
+    y, h = rows(r1, r2 - 1)
+    cy, ch = rows(r2, r2)
+    for (label, head, body), (c1, c2) in zip(items, spans):
+        x, w = cols(c1, c2)
+        f = (BASE / head).resolve()
+        if not f.is_file():
+            sys.exit(f"«{sl['заголовок']}»: нет картинки {f}")
+        place_image(s, f, x, y, w, h)
+        paras = ([label_p(label)] if label else []) + [body_p(body, 13, NAVY)]
+        text(s, x, cy, w, ch, paras)
+        check_fit(sl, "подпись картинки", paras, w, ch)
+
+
+def table(s, sl, r1, r2):
+    """Таблица на всю ширину сетки: первая строка — шапка, ячейки через « | ».
+    Без линеек между строками (стандарт BITOBE): строки разделяет воздух."""
+    data = [[c.strip() for c in it.split("|")] for it in sl["пункты"]]
+    ncol = len(data[0])
+    weights = [float(x) for x in re.findall(r"[\d.]+", sl.get("ширины", ""))] or [1] * ncol
+    x, w = cols(0, 11)
+    y, h = rows(r1, r2)
+    gf = s.shapes.add_table(len(data), ncol, Pt(x), Pt(y), Pt(w), Pt(h))
+    tbl = gf.table
+    style = tbl._tbl.tblPr.find(qn("a:tableStyleId"))
+    if style is None:
+        style = etree.SubElement(tbl._tbl.tblPr, qn("a:tableStyleId"))
+    style.text = "{2D5ABB26-0587-4C30-8999-92F81FD0307C}"      # «Без стиля, без сетки»
+    tbl.first_row = False
+    tbl.horz_banding = False
+    for j, wt in enumerate(weights):
+        tbl.columns[j].width = Pt(w * wt / sum(weights))
+    row_h = h / len(data)
+    for i, row in enumerate(data):
+        tbl.rows[i].height = Pt(row_h)
+        for j in range(ncol):
+            cell = tbl.cell(i, j)
+            cell.fill.background()
+            cell.margin_left, cell.margin_right = Pt(0), Pt(10)
+            cell.margin_top = cell.margin_bottom = Pt(3)
+            val = row[j] if j < len(row) else ""
+            para = label_p(val) if i == 0 else body_p(val, 12, NAVY if j < 2 else GRAY)
+            fill_tf(cell.text_frame, [para], anchor=MSO_ANCHOR.TOP)
 
 
 # ---------- слайды ----------
@@ -580,9 +683,10 @@ def fill_cover(slide, meta):
             ph.text = f"Подготовлено для {who}" if who else ""
 
 
-TYPES = {"карточки", "цифры", "колонки", "список", "чеклист", "шаги", "цепочка", "схема", "раздел", "банк"}
+TYPES = {"карточки", "цифры", "колонки", "список", "чеклист", "шаги", "цепочка", "схема", "раздел", "банк",
+         "картинка", "картинки", "таблица"}
 ABOVE = ("лид", "цитата")
-BELOW = ("вывод", "текст", "примечание", "пример", "плашка")
+BELOW = ("вывод", "примечание", "пример", "плашка", "текст")
 
 
 def layout_content(s, sl, kind):
@@ -626,6 +730,12 @@ def layout_content(s, sl, kind):
         chain(s, sl, m1, m2)
     elif kind == "схема":
         scheme(s, sl, m1, m2)
+    elif kind == "картинка":
+        image_with_text(s, sl, m1, m2)
+    elif kind == "картинки":
+        images_row(s, sl, m1, m2)
+    elif kind == "таблица":
+        table(s, sl, m1, m2)
     r = m2 + 1
     for key, need in [p for p in plan if p[0] in BELOW]:
         if r + need - 1 >= ROWS:
@@ -653,6 +763,8 @@ def draw_block(s, sl, key, r1, r2):
 
 
 def build(spec, out):
+    global BASE
+    BASE = Path(spec).resolve().parent
     meta, slides = parse(spec)
     prs = Presentation(str(TEMPLATE))
     bank = None
