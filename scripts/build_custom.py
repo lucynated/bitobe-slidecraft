@@ -762,6 +762,20 @@ def bank_slide(prs, bank, num, used):
     return s
 
 
+SECTIONS_EXT = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}"
+
+
+def drop_sections(prs):
+    """Убрать разделы PowerPoint (боковая панель слайдов), доставшиеся от исходного файла:
+    после сборки они пустые или ссылаются на удалённые слайды."""
+    ext_lst = prs.part._element.find(qn("p:extLst"))
+    if ext_lst is None:
+        return
+    for ext in list(ext_lst):
+        if ext.get("uri") == SECTIONS_EXT:
+            ext_lst.remove(ext)
+
+
 def fill_cover(slide, meta):
     for ph in slide.placeholders:
         idx = ph.placeholder_format.idx
@@ -914,6 +928,7 @@ def build(spec, out):
         lst.remove(contacts_el)
         lst.append(contacts_el)
     prs.part.rename_slide_parts([el.rId for el in lst])
+    drop_sections(prs)
 
     out = Path(out)
     out.parent.mkdir(parents=True, exist_ok=True)

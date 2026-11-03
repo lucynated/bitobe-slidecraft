@@ -12,6 +12,7 @@
 import argparse, re, sys
 from pathlib import Path
 from pptx import Presentation
+from pptx.oxml.ns import qn
 
 ROOT = Path(__file__).resolve().parent.parent
 BANK = ROOT / "library" / "bank.pptx"
@@ -30,6 +31,20 @@ def numbers_from_map(path):
         if len(cells) >= 3 and re.fullmatch(r"\d+", cells[2]):
             nums.append(int(cells[2]))
     return nums
+
+
+SECTIONS_EXT = "{521415D9-36F7-43E2-AB2F-B90AF26B5E84}"
+
+
+def drop_sections(prs):
+    """Убрать разделы PowerPoint (боковая панель слайдов), доставшиеся от исходного файла:
+    после сборки они пустые или ссылаются на удалённые слайды."""
+    ext_lst = prs.part._element.find(qn("p:extLst"))
+    if ext_lst is None:
+        return
+    for ext in list(ext_lst):
+        if ext.get("uri") == SECTIONS_EXT:
+            ext_lst.remove(ext)
 
 
 def build(order, out, bank=BANK):
@@ -56,6 +71,7 @@ def build(order, out, bank=BANK):
     for el in keep:
         sld_lst.append(el)
 
+    drop_sections(prs)
     out = Path(out); out.parent.mkdir(parents=True, exist_ok=True)
     prs.save(str(out))
     print(f"Готово: {out} — {len(clean)} слайдов: {', '.join(map(str, clean))}")
