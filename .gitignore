@@ -5,3 +5,4 @@ decks/*_preview/
 decks/*.pptx
 !decks/2026-11-03_demo_evp_hrd.pptx
 work/
+decks/*_karta.png

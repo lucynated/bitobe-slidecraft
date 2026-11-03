@@ -37,6 +37,17 @@ GRAY, LIGHT, RULE, MID = "64676A", "F3F4F6", "E5E7EB", "C8C8C8"
 WHITE, BLACK = "FFFFFF", "000000"
 BODY, HEAD, SERIF = "Onest", "Onest Medium", "PT Serif"
 
+# Типографическая шкала, pt — одна на все слайды (по образцам шаблона: содержание 28/20/12, текст 14).
+# Других размеров в слайдах нет: так текст одного уровня везде выглядит одинаково.
+SZ_H2 = 20        # заголовок крупного блока: раздел в содержании
+SZ_H3 = 16        # заголовок плашки, пункта, шага
+SZ_BODY = 14      # основной текст
+SZ_SMALL = 12     # второстепенный текст: подписи, примечания, таблицы, мелкие блоки схем
+SZ_LABEL = 10     # надписи прописными, подписи стрелок
+SZ_INDEX = 28     # порядковые номера курсивом PT Serif
+SZ_BIG = 54       # цифры-факты курсивом PT Serif
+SZ_ACCENT = 20    # выводы, цитаты, лид курсивом PT Serif
+
 # Сетка мастера шаблона (направляющие), pt. 12 колонок по 59,5 с промежутком 17,
 # 5 строк зоны контента — квадратные модули 59,5. Полоса 108,4–125,4 над первой строкой — отступ от заголовка.
 COL_L = [29.25, 105.75, 182.375, 258.875, 335.375, 412.0, 488.5, 565.0, 641.625, 718.125, 794.625, 871.25]
@@ -84,17 +95,23 @@ def row_spans(r1, r2, n, middle_gap=False):
 
 def parse(path):
     """Описание → (параметры обложки, список слайдов). Формат — docs/format_prezentacii.md."""
-    meta, slides, cur = {"заголовок": ""}, [], None
+    meta, slides, cur = {"заголовок": "", "разделы": []}, [], None
     for raw in Path(path).read_text(encoding="utf-8").splitlines():
         line = raw.rstrip()
         if not line.strip() or line.lstrip().startswith("<!--"):
+            continue
+        if line.startswith("### "):
+            name, _, desc = line[4:].partition(" | ")
+            meta["разделы"].append({"название": name.strip(), "описание": desc.strip()})
+            cur = None
             continue
         if line.startswith("## "):
             head = line[3:].strip()
             eyebrow, title = ("", head)
             if " | " in head:
                 eyebrow, title = (s.strip() for s in head.split(" | ", 1))
-            cur = {"надзаголовок": eyebrow, "заголовок": title, "пункты": []}
+            cur = {"надзаголовок": eyebrow, "заголовок": title, "пункты": [],
+                   "раздел": len(meta["разделы"]) - 1}
             slides.append(cur)
         elif line.startswith("# ") and cur is None:
             meta["заголовок"] = line[2:].strip()
@@ -148,25 +165,25 @@ def rgb(h):
     return RGBColor.from_string(h)
 
 
-def P(text, size=12, color=NAVY, font=BODY, italic=False, after=4, spacing=1.1):
+def P(text, size=SZ_SMALL, color=NAVY, font=BODY, italic=False, after=4, spacing=1.1):
     return {"text": text, "size": size, "color": color, "font": font, "italic": italic,
             "after": after, "spacing": spacing}
 
 
-def head_p(t, size=14, color=NAVY):
+def head_p(t, size=SZ_H3, color=NAVY):
     return P(t, size, color, HEAD, after=4)
 
 
-def body_p(t, size=12, color=GRAY):
+def body_p(t, size=SZ_BODY, color=GRAY):
     return P(t, size, color, after=3)
 
 
-def serif_p(t, size=20, color=BLACK):
+def serif_p(t, size=SZ_ACCENT, color=BLACK):
     return P(t, size, color, SERIF, italic=True, spacing=1.15)
 
 
 def label_p(t, color=BLUE):
-    return P(t.upper(), 10, color, HEAD, after=4)
+    return P(t.upper(), SZ_LABEL, color, HEAD, after=4)
 
 
 def fill_tf(tf, paras, margin=0, anchor=MSO_ANCHOR.TOP):
@@ -266,12 +283,12 @@ def block_rows(paras, w, min_rows=1):
 def lead_block(s, sl, r1, r2, txt):
     y, h = rows(r1, r2)
     b = rect(s, COL_L[0], y, COL_R[11] - COL_L[0], h, NAVY)
-    fill_tf(b.text_frame, [serif_p(txt, 20, WHITE)], margin=PAD + 6, anchor=MSO_ANCHOR.MIDDLE)
+    fill_tf(b.text_frame, [serif_p(txt, color=WHITE)], margin=PAD + 6, anchor=MSO_ANCHOR.MIDDLE)
 
 
-def quote_block(s, sl, r1, r2, txt, size):
+def quote_block(s, sl, r1, r2, txt):
     y, h = rows(r1, r2)
-    paras = [serif_p(txt, size)]
+    paras = [serif_p(txt)]
     check_fit(sl, "цитата или вывод", paras, 901.5, h)
     text(s, COL_L[0], y, 901.5, h, paras, anchor=MSO_ANCHOR.MIDDLE)
 
@@ -282,16 +299,16 @@ def small_text(s, sl, r1, r2, txt):
     hx, hw = cols(0, 2)
     bx, bw = cols(3, 11)
     if head:
-        text(s, hx, y, hw, h, [head_p(head, 13)], anchor=MSO_ANCHOR.MIDDLE)
+        text(s, hx, y, hw, h, [head_p(head)], anchor=MSO_ANCHOR.MIDDLE)
     else:
         bx, bw = cols(0, 11)
-    text(s, bx, y, bw, h, [body_p(body, 13)], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, bx, y, bw, h, [body_p(body)], anchor=MSO_ANCHOR.MIDDLE)
 
 
 def note_band(s, sl, r1, r2, txt):
     y, h = rows(r1, r2)
     b = rect(s, COL_L[0], y, 901.5, h, LIGHT)
-    fill_tf(b.text_frame, [body_p(txt, 12, NAVY)], margin=PAD, anchor=MSO_ANCHOR.MIDDLE)
+    fill_tf(b.text_frame, [body_p(txt, SZ_SMALL, NAVY)], margin=PAD, anchor=MSO_ANCHOR.MIDDLE)
 
 
 def titled_band(s, sl, r1, r2, txt, fill):
@@ -301,9 +318,9 @@ def titled_band(s, sl, r1, r2, txt, fill):
     plate(s, COL_L[0], y, 901.5, h, fill)
     hx, hw = cols(0, 2)
     bx, bw = cols(3, 11)
-    text(s, hx + PAD, y, hw - PAD, h, [head_p(head or "Итог", 15, WHITE)], anchor=MSO_ANCHOR.MIDDLE)
+    text(s, hx + PAD, y, hw - PAD, h, [head_p(head or "Итог", color=WHITE)], anchor=MSO_ANCHOR.MIDDLE)
     items = [t.strip() for t in body.split(";") if t.strip()]
-    paras = [body_p(t, 15, WHITE) for t in items]
+    paras = [body_p(t, color=WHITE) for t in items]
     check_fit(sl, "плашка", paras, bw - PAD, h - 12)
     text(s, bx, y, bw - PAD, h, paras, anchor=MSO_ANCHOR.MIDDLE)
 
@@ -323,26 +340,26 @@ def cards_row(s, sl, r1, r2, kind):
         label, head, body = split_item(it)
         dark = i in acc
         tc, bc = (WHITE, WHITE) if dark else (NAVY, GRAY)
-        top = [P(str(i), 54, WHITE if dark else BLUE, SERIF, italic=True, after=6)] if numbered else []
+        top = [P(str(i), SZ_INDEX, WHITE if dark else BLUE, SERIF, italic=True, after=6)] if numbered else []
         top += [label_p(label, WHITE if dark else BLUE)] if label else []
         if kind == "цифры":
-            top += [P(head, 54, WHITE if dark else BLUE, SERIF, italic=True, after=0)]
-            card(s, sl, x, y, w, h, top, [body_p(body, 16, tc)], fill=NAVY if dark else LIGHT)
+            top += [P(head, SZ_BIG, WHITE if dark else BLUE, SERIF, italic=True, after=0)]
+            card(s, sl, x, y, w, h, top, [body_p(body, color=tc)], fill=NAVY if dark else LIGHT)
         elif kind == "колонки":
             # заголовок вверху, пункты — по строкам сетки ниже
             plate(s, x, y, w, h, NAVY if dark else LIGHT)
-            top += [head_p(head, 17, tc)]
+            top += [head_p(head, color=tc)]
             text(s, x + PAD, y + PAD, w - 2 * PAD, est_height(top, w - 2 * PAD), top)
             pts = [t.strip() for t in body.split(";") if t.strip()]
             if r2 > r1 and pts:
                 for t, (a, b) in zip(pts, row_spans(r1 + 1, r2, len(pts))):
                     yy, hh = rows(a, b)
                     hline(s, x + PAD, yy, w - 2 * PAD, MID if dark else RULE)
-                    text(s, x + PAD, yy + 8, w - 2 * PAD, hh - 8 - PAD / 2, [body_p(t, 14, bc)])
-                    check_fit(sl, "пункт колонки", [body_p(t, 14)], w - 2 * PAD, hh - 8 - PAD / 2)
+                    text(s, x + PAD, yy + 8, w - 2 * PAD, hh - 8 - PAD / 2, [body_p(t, color=bc)])
+                    check_fit(sl, "пункт колонки", [body_p(t)], w - 2 * PAD, hh - 8 - PAD / 2)
         else:
-            top += [head_p(head, 17, tc)] if head else []
-            card(s, sl, x, y, w, h, top, [body_p(body, 14, bc)], fill=NAVY if dark else LIGHT)
+            top += [head_p(head, color=tc)] if head else []
+            card(s, sl, x, y, w, h, top, [body_p(body, color=bc)], fill=NAVY if dark else LIGHT)
 
 
 def list_rows(s, sl, r1, r2):
@@ -355,9 +372,9 @@ def list_rows(s, sl, r1, r2):
     for i, (_, head, body) in enumerate(items):
         y, h = rows(r1 + i, r1 + i)
         hline(s, COL_L[0], y, 901.5)
-        text(s, hx, y + 10, hw, h - 10, [head_p(head, 16)])
-        text(s, bx, y + 10, bw, h - 10, [body_p(body, 15)])
-        check_fit(sl, "строка списка", [body_p(body, 15)], bw, h - 10)
+        text(s, hx, y + 10, hw, h - 10, [head_p(head)])
+        text(s, bx, y + 10, bw, h - 10, [body_p(body)])
+        check_fit(sl, "строка списка", [body_p(body)], bw, h - 10)
 
 
 def checklist(s, sl, r1, r2):
@@ -372,8 +389,8 @@ def checklist(s, sl, r1, r2):
         x, w = cols(c1, c2)
         y, h = rows(picks[i // 2], picks[i // 2])
         rect(s, x, y + 5, 10, 10, COPPER)
-        text(s, x + 26, y, w - 26 - 17, h, [body_p(t, 16, NAVY)])
-        check_fit(sl, "пункт чек-листа", [body_p(t, 16)], w - 43, h)
+        text(s, x + 26, y, w - 26 - 17, h, [body_p(t, color=NAVY)])
+        check_fit(sl, "пункт чек-листа", [body_p(t)], w - 43, h)
 
 
 def steps(s, sl, r1, r2):
@@ -385,9 +402,9 @@ def steps(s, sl, r1, r2):
     for i, (it, (c1, c2)) in enumerate(zip(items, spans)):
         x, w = cols(c1, c2)
         _, head, body = split_item(it)
-        text(s, x, y, w, 60, [P(str(i + 1), 54, BLUE, SERIF, italic=True, after=0)])
-        paras = ([head_p(head, 17)] if head else []) + [body_p(body, 16, NAVY)]
-        ty = ROW_T[r1 + 1] if r2 > r1 else y + 50
+        text(s, x, y, w, 40, [P(str(i + 1), SZ_INDEX, BLUE, SERIF, italic=True, after=0)])
+        paras = ([head_p(head)] if head else []) + [body_p(body, color=NAVY)]
+        ty = y + 44
         text(s, x, ty, w - 8, y + h - ty, paras)
         check_fit(sl, "шаг", paras, w - 8, y + h - ty)
 
@@ -419,10 +436,10 @@ def chain(s, sl, r1, r2):
         _, head, body = split_item(it)
         dark = i in acc
         last = i == n and not dark
-        num = P(str(i), 44, WHITE if dark else BLUE, SERIF, italic=True, after=6) if h > 150 \
-            else P(f"{i:02d}", 11, WHITE if dark else BLUE, HEAD, after=4)
-        top = [num, head_p(head or "", 15, WHITE if dark else NAVY)]
-        bottom = [body_p(body, 12, WHITE if dark else GRAY)]
+        num = P(str(i), SZ_INDEX, WHITE if dark else BLUE, SERIF, italic=True, after=6) if h > 150 \
+            else P(f"{i:02d}", SZ_LABEL, WHITE if dark else BLUE, HEAD, after=4)
+        top = [num, head_p(head or "", color=WHITE if dark else NAVY)]
+        bottom = [body_p(body, SZ_SMALL, WHITE if dark else GRAY)]
         card(s, sl, x, y, w, h, top, bottom, fill=NAVY if dark else (WHITE if last else LIGHT),
              border=COPPER if last else None)
     for i in range(n - 1):
@@ -457,14 +474,14 @@ def scheme(s, sl, r1, r2):
         b["h"] = ROW_B[bands[b["b"] - 1][1]] - b["y"]
         _, head, body = split_item(b["rest"])
         dark = b["mark"] == "!"
-        top = [head_p(head or body, 16, WHITE if dark else NAVY)]
+        top = [head_p(head or body, color=WHITE if dark else NAVY)]
         bottom = []
         if head:
             for seg in [t.strip() for t in body.split(" // ") if t.strip()]:
                 if seg.startswith("`") and seg.endswith("`"):
-                    top.append(body_p(seg.strip("`"), 12, WHITE if dark else BLUE))
+                    top.append(body_p(seg.strip("`"), SZ_SMALL, WHITE if dark else BLUE))
                 else:
-                    bottom.append(body_p(seg, 12, WHITE if dark else GRAY))
+                    bottom.append(body_p(seg, SZ_SMALL, WHITE if dark else GRAY))
         card(s, sl, b["x"], b["y"], b["w"], b["h"], top, bottom,
              fill=NAVY if dark else (WHITE if b["mark"] == "?" else LIGHT),
              border=MID if b["mark"] == "?" else None, dashed=b["mark"] == "?")
@@ -483,13 +500,13 @@ def scheme(s, sl, r1, r2):
             x1, x2 = (a["x"] + a["w"], z["x"]) if a["x"] < z["x"] else (a["x"], z["x"] + z["w"])
             arrow(s, x1, y1, x2, y2, elbow=y1 != y2, dashed=dashed)
             if label:
-                text(s, min(x1, x2) + 4, y1 - 17, abs(x2 - x1) - 8, 15, [body_p(label, 10)])
+                text(s, min(x1, x2) + 4, y1 - 17, abs(x2 - x1) - 8, 15, [body_p(label, SZ_LABEL)])
         else:
             x = a["x"] + a["w"] / 2
             y1, y2 = (a["y"] + a["h"], z["y"]) if a["y"] < z["y"] else (a["y"], z["y"] + z["h"])
             arrow(s, x, y1, x, y2, dashed=dashed)
             if label:
-                text(s, x + 8, (y1 + y2) / 2 - 8, 120, 15, [body_p(label, 10)])
+                text(s, x + 8, (y1 + y2) / 2 - 8, 120, 15, [body_p(label, SZ_LABEL)])
 
 
 # ---------- картинки и таблицы ----------
@@ -501,15 +518,24 @@ def image_path(sl, key="файл"):
     return f
 
 
-def place_image(s, path, x, y, w, h):
-    """Картинка целиком (без обрезки, пропорции сохраняются), прижата к левому верхнему углу области."""
+def place_image(s, sl, path, x, y, w, h):
+    """Картинка заполняет ячейку сетки целиком: пропорции сохраняются, лишнее срезается (по центру
+    по ширине, снизу по высоте). Срез больше 5% — предупреждение: картинку надо делать в пропорции ячейки."""
     from PIL import Image
     iw, ih = Image.open(path).size
-    k = min(w / iw, h / ih)
-    pic = s.shapes.add_picture(str(path), Pt(x), Pt(y), Pt(iw * k), Pt(ih * k))
+    pic = s.shapes.add_picture(str(path), Pt(x), Pt(y), Pt(w), Pt(h))
+    img_ar, box_ar = iw / ih, w / h
+    if img_ar > box_ar:
+        cut = 1 - box_ar / img_ar
+        pic.crop_left = pic.crop_right = cut / 2
+    else:
+        cut = 1 - img_ar / box_ar
+        pic.crop_bottom = cut
+    if cut > 0.05:
+        WARN.append(f"«{sl['заголовок'][:40]}…»: картинка {Path(path).name} обрезана на {cut:.0%} — "
+                    f"сделайте её в пропорции {w / h:.2f}")
     pic.line.color.rgb = rgb(RULE)
     pic.line.width = Pt(0.75)
-    return iw * k, ih * k
 
 
 def image_with_text(s, sl, r1, r2):
@@ -520,16 +546,24 @@ def image_with_text(s, sl, r1, r2):
     txt_cols = (wide, 11) if left else (0, 11 - wide)
     x, w = cols(*img_cols)
     y, h = rows(r1, r2)
-    place_image(s, image_path(sl), x, y, w, h)
+    place_image(s, sl, image_path(sl), x, y, w, h)
     tx, tw = cols(*txt_cols)
     items = [split_item(it) for it in sl["пункты"]]
     if not items:
         return
-    spans = row_spans(r1, r2, len(items))
-    for (label, head, body), (a, b) in zip(items, spans):
-        yy, hh = rows(a, b)
+    # пункты начинаются на линиях сетки с равным шагом: 2 пункта — строки 1 и 3, 3 — 1, 3, 5, 4–5 — подряд
+    total = r2 - r1 + 1
+    n = len(items)
+    if n > total:
+        sys.exit(f"«{sl['заголовок']}»: рядом с картинкой не больше {total} пунктов")
+    step = (total - 1) // (n - 1) if n > 1 else total
+    for i, (label, head, body) in enumerate(items):
+        a = r1 + i * step
+        b = r2 if i == n - 1 else a + step - 1
+        yy = ROW_T[a]
+        hh = (ROW_B[b] if b == r2 else ROW_T[b + 1]) - yy      # до следующего пункта, с промежутком
         hline(s, tx, yy, tw)
-        paras = ([label_p(label)] if label else []) + ([head_p(head, 15)] if head else []) + [body_p(body, 13)]
+        paras = ([label_p(label)] if label else []) + ([head_p(head)] if head else []) + [body_p(body)]
         text(s, tx, yy + 8, tw, hh - 8, paras)
         check_fit(sl, "пункт рядом с картинкой", paras, tw, hh - 8)
 
@@ -547,8 +581,8 @@ def images_row(s, sl, r1, r2):
         f = (BASE / head).resolve()
         if not f.is_file():
             sys.exit(f"«{sl['заголовок']}»: нет картинки {f}")
-        place_image(s, f, x, y, w, h)
-        paras = ([label_p(label)] if label else []) + [body_p(body, 13, NAVY)]
+        place_image(s, sl, f, x, y, w, h)
+        paras = ([label_p(label)] if label else []) + [body_p(body, color=NAVY)]
         text(s, x, cy, w, ch, paras)
         check_fit(sl, "подпись картинки", paras, w, ch)
 
@@ -580,7 +614,7 @@ def table(s, sl, r1, r2):
             cell.margin_left, cell.margin_right = Pt(0), Pt(10)
             cell.margin_top = cell.margin_bottom = Pt(3)
             val = row[j] if j < len(row) else ""
-            para = label_p(val) if i == 0 else body_p(val, 12, NAVY if j < 2 else GRAY)
+            para = label_p(val) if i == 0 else body_p(val, SZ_SMALL, NAVY if j < 2 else GRAY)
             fill_tf(cell.text_frame, [para], anchor=MSO_ANCHOR.TOP)
 
 
@@ -593,19 +627,78 @@ def layout(prs, name):
     sys.exit(f"В шаблоне нет макета «{name}»")
 
 
-def content_slide(prs, sl):
+def progress_bar(ph, sections, current):
+    """Навигация шаблона «Прогресс бар»: все разделы в строке над заголовком, текущий — жирным."""
+    tf = ph.text_frame
+    para = tf.paragraphs[0]
+    for i, sec in enumerate(sections):
+        if i:
+            para.add_run().text = "  |  "
+        r = para.add_run()
+        r.text = sec["название"]
+        if i == current:
+            r.font.bold = True
+            r.font.color.rgb = rgb(NAVY)
+
+
+def content_slide(prs, sl, sections):
     s = prs.slides.add_slide(layout(prs, "Только заголовок"))
     s.shapes.title.text = sl["заголовок"]
     for ph in list(s.placeholders):
         idx = ph.placeholder_format.idx
         if idx == 11:
-            if sl["надзаголовок"]:
+            if sections and sl["раздел"] >= 0:
+                progress_bar(ph, sections, sl["раздел"])
+            elif sl["надзаголовок"]:
                 ph.text = sl["надзаголовок"]
             else:
                 ph._element.getparent().remove(ph._element)
         elif idx == 10:
             ph._element.getparent().remove(ph._element)
     return s
+
+
+def contents_slide(prs, sections, title):
+    """Содержание по образцу шаблона: карточка на раздел — номер, название, описание, «Перейти →»."""
+    spans = col_spans(len(sections))
+    if not spans:
+        sys.exit("Разделов для содержания нужно 2, 3, 4 или 6 — по колонкам сетки")
+    s = prs.slides.add_slide(layout(prs, "Только заголовок"))
+    s.shapes.title.text = title
+    for ph in list(s.placeholders):
+        if ph.placeholder_format.idx in (10, 11):
+            ph._element.getparent().remove(ph._element)
+    y, h = rows(0, ROWS - 1)
+    buttons = []
+    for i, (sec, (c1, c2)) in enumerate(zip(sections, spans), 1):
+        x, w = cols(c1, c2)
+        plate(s, x, y, w, h, LIGHT)
+        iw = w - 2 * PAD
+        top = [P(f"{i:02d}", SZ_INDEX, BLUE, SERIF, italic=True, after=6), head_p(sec["название"], SZ_H2)]
+        th = est_height(top, iw)
+        text(s, x + PAD, y + PAD, iw, th, top)
+        hline(s, x + PAD, y + PAD + th + 6, iw, MID)
+        dh = est_height([body_p(sec["описание"], SZ_SMALL)], iw)
+        text(s, x + PAD, y + PAD + th + 14, iw, dh, [body_p(sec["описание"], SZ_SMALL)])
+        sec["_list"] = text(s, x + PAD, ROW_T[2], iw, ROW_B[ROWS - 1] - ROW_T[2] - 40, [])
+        btn = plate(s, x + PAD, y + h - PAD - 24, 96, 24, COPPER)
+        fill_tf(btn.text_frame, [P("Перейти →", SZ_SMALL, WHITE, after=0)], margin=4, anchor=MSO_ANCHOR.MIDDLE)
+        btn.text_frame.paragraphs[0].alignment = PP_ALIGN.CENTER
+        buttons.append(btn)
+    return s, buttons
+
+
+def fill_contents(sections):
+    """Список слайдов в карточках содержания: номер страницы и короткое название."""
+    for sec in sections:
+        tb = sec.get("_list")
+        if tb is None:
+            continue
+        paras = []
+        for page, name in sec.get("_slides", []):
+            paras.append(P(f"{page:02d}   {name}", SZ_SMALL, NAVY, after=8))
+        tb.text_frame.paragraphs[0].text = ""
+        fill_tf(tb.text_frame, paras)
 
 
 def divider_slide(prs, sl):
@@ -701,11 +794,11 @@ def layout_content(s, sl, kind):
             items = [t for t in body.split(";") if t.strip()]
             need = 2 if len(items) > 2 or len(body) > 90 else 1
         elif key == "лид":
-            need = block_rows([serif_p(val, 20)], 860)
+            need = block_rows([serif_p(val)], 860)
         elif key in ("цитата", "вывод"):
-            need = block_rows([serif_p(val, 18 if key == "цитата" else 20)], 901)
+            need = block_rows([serif_p(val)], 901)
         else:
-            need = block_rows([body_p(val, 13)], 640)
+            need = block_rows([body_p(val)], 640)
         plan.append((key, need))
     used = sum(n for _, n in plan)
     main = ROWS - used
@@ -749,9 +842,9 @@ def draw_block(s, sl, key, r1, r2):
     if key == "лид":
         lead_block(s, sl, r1, r2, val)
     elif key == "цитата":
-        quote_block(s, sl, r1, r2, val, 18)
+        quote_block(s, sl, r1, r2, val)
     elif key == "вывод":
-        quote_block(s, sl, r1, r2, val, 20)
+        quote_block(s, sl, r1, r2, val)
     elif key == "текст":
         small_text(s, sl, r1, r2, val)
     elif key == "примечание":
@@ -785,6 +878,11 @@ def build(spec, out):
     if meta.get("заметки"):
         prs.slides[0].notes_slide.notes_text_frame.text = meta["заметки"]
 
+    sections = meta["разделы"]
+    buttons, first_of = [], {}
+    if len(sections) >= 2 and meta.get("содержание", "да").lower() not in ("нет", "no"):
+        _, buttons = contents_slide(prs, sections, meta.get("содержание_заголовок", "Содержание"))
+
     for n, sl in enumerate(slides, 2):
         kind = sl.get("тип", "карточки").lower()
         if kind not in TYPES:
@@ -795,10 +893,19 @@ def build(spec, out):
         elif kind == "раздел":
             s = divider_slide(prs, sl)
         else:
-            s = content_slide(prs, sl)
+            s = content_slide(prs, sl, sections)
             layout_content(s, sl, kind)
+        if sl["раздел"] >= 0:
+            first_of.setdefault(sl["раздел"], s)
+            short = sl["надзаголовок"] or " ".join(sl["заголовок"].split()[:4])
+            sections[sl["раздел"]].setdefault("_slides", []).append((len(prs.slides) - 1, short))  # −1: контакты пока стоят вторыми
         if sl.get("заметки"):
             s.notes_slide.notes_text_frame.text = sl["заметки"]
+
+    fill_contents(sections)
+    for i, btn in enumerate(buttons):
+        if i in first_of:
+            btn.click_action.target_slide = first_of[i]
 
     if meta.get("контакты", "да").lower() in ("нет", "no"):
         prs.part.drop_rel(contacts_el.rId)
